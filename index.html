@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件上传与Base64编码展示</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- 标题区域 -->
+        <header class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-bold text-indigo-700 mb-2">文件上传与Base64编码转换</h1>
+            <p class="text-gray-600 max-w-2xl mx-auto">拖放文件到下方区域或点击选择文件，系统将自动显示文件名和Base64编码内容，支持一键复制</p>
+        </header>
+
+        <!-- 主要功能区域 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- 左侧上传区域 -->
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <div 
+                    id="dropZone" 
+                    class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer transition-all duration-300 hover:border-indigo-500 hover:bg-indigo-50 mb-6"
+                >
+                    <div class="flex flex-col items-center justify-center">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-indigo-500 mb-4"></i>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2">拖放文件到此处</h3>
+                        <p class="text-gray-500 mb-4">或</p>
+                        <label for="fileInput" class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium cursor-pointer hover:bg-indigo-700 transition-colors">
+                            浏览文件
+                        </label>
+                        <input 
+                            id="fileInput" 
+                            type="file" 
+                            class="hidden" 
+                            multiple 
+                            accept=".p12,.mobileprovision,.cer,.pem,.crt,.key"
+                        >
+                        <p class="text-sm text-gray-500 mt-4">支持 .p12, .mobileprovision, .cer, .pem 等证书文件</p>
+                    </div>
+                </div>
+                
+                <!-- 操作说明 -->
+                <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h3 class="font-semibold text-blue-800 mb-2 flex items-center">
+                        <i class="fas fa-info-circle mr-2"></i> 命令行操作提示
+                    </h3>
+                    <div class="text-sm text-blue-700 space-y-2">
+                        <div class="flex items-start">
+                            <span class="bg-blue-200 px-2 py-1 rounded mr-2 font-mono">1</span>
+                            <p>在终端中使用以下命令获取文件的Base64编码:</p>
+                        </div>
+                        <div class="bg-gray-800 text-gray-100 p-3 rounded font-mono text-sm">
+                            base64 -i /path/to/your/file.p12 | pbcopy
+                        </div>
+                        <div class="flex items-start mt-2">
+                            <span class="bg-blue-200 px-2 py-1 rounded mr-2 font-mono">2</span>
+                            <p>命令会将Base64编码复制到剪贴板，然后粘贴到需要的地方</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧文件信息展示区域 -->
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-file-alt mr-2 text-indigo-600"></i> 上传的文件
+                </h2>
+                
+                <div id="fileList" class="space-y-4">
+                    <!-- 文件信息卡片将在这里动态生成 -->
+                    <div class="bg-gray-50 rounded-lg p-5 text-center">
+                        <i class="fas fa-folder-open text-3xl text-gray-400 mb-3"></i>
+                        <p class="text-gray-500">尚未上传文件</p>
+                        <p class="text-sm text-gray-400 mt-2">拖放文件或点击浏览按钮上传</p>
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex justify-between items-center">
+                    <div class="text-sm text-gray-500">
+                        <i class="fas fa-database mr-1"></i>
+                        <span id="totalFiles">0</span> 个文件
+                    </div>
+                    <button 
+                        id="clearAllBtn" 
+                        class="flex items-center text-red-500 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled
+                    >
+                        <i class="fas fa-trash-alt mr-1"></i> 清除所有
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 功能特性展示 -->
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white rounded-xl shadow-md p-6 border-t-4 border-indigo-500">
+                <div class="flex items-start">
+                    <div class="bg-indigo-100 p-3 rounded-lg mr-4">
+                        <i class="fas fa-copy text-indigo-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg mb-2">便捷复制</h3>
+                        <p class="text-gray-600">一键复制Base64编码内容，简化开发流程，提高工作效率</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-md p-6 border-t-4 border-green-500">
+                <div class="flex items-start">
+                    <div class="bg-green-100 p-3 rounded-lg mr-4">
+                        <i class="fas fa-mobile-alt text-green-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg mb-2">移动端证书支持</h3>
+                        <p class="text-gray-600">完美支持 .p12 证书和 .mobileprovision 描述文件处理</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-md p-6 border-t-4 border-purple-500">
+                <div class="flex items-start">
+                    <div class="bg-purple-100 p-3 rounded-lg mr-4">
+                        <i class="fas fa-shield-alt text-purple-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg mb-2">安全处理</h3>
+                        <p class="text-gray-600">所有操作在浏览器中完成，文件不会上传到任何服务器</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 复制成功提示 -->
+    <div id="copyToast" class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg transform translate-y-20 transition-transform opacity-0">
+        <i class="fas fa-check-circle mr-2"></i> Base64编码已复制到剪贴板！
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const totalFiles = document.getElementById('totalFiles');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const copyToast = document.getElementById('copyToast');
+        
+        // 存储文件信息的数组
+        let uploadedFiles = [];
+        
+        // 拖放事件处理
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-indigo-500', 'bg-indigo-50');
+        });
+        
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
+            
+            if (e.dataTransfer.files.length > 0) {
+                handleFiles(e.dataTransfer.files);
+            }
+        });
+        
+        // 点击上传区域触发文件选择
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        // 文件选择处理
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                handleFiles(fileInput.files);
+            }
+        });
+        
+        // 清除所有按钮事件
+        clearAllBtn.addEventListener('click', () => {
+            uploadedFiles = [];
+            renderFileList();
+            updateFileCount();
+            clearAllBtn.disabled = true;
+        });
+        
+        // 处理文件上传
+        function handleFiles(files) {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                
+                // 检查文件类型
+                const validExtensions = ['.p12', '.mobileprovision', '.cer', '.pem', '.crt', '.key'];
+                const extension = '.' + file.name.split('.').pop().toLowerCase();
+                
+                if (!validExtensions.includes(extension)) {
+                    alert(`不支持的文件类型: ${file.name}\n请上传证书文件 (.p12, .mobileprovision, .cer, .pem 等)`);
+                    continue;
+                }
+                
+                // 读取文件内容
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // 移除Data URL前缀，只保留base64内容
+                    const base64Content = e.target.result.split(',')[1];
+                    
+                    // 添加到上传文件数组
+                    uploadedFiles.push({
+                        name: file.name,
+                        size: formatFileSize(file.size),
+                        type: file.type || 'application/octet-stream',
+                        base64: base64Content,
+                        extension: extension
+                    });
+                    
+                    // 更新UI
+                    renderFileList();
+                    updateFileCount();
+                    clearAllBtn.disabled = false;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        // 渲染文件列表
+        function renderFileList() {
+            if (uploadedFiles.length === 0) {
+                fileList.innerHTML = `
+                    <div class="bg-gray-50 rounded-lg p-5 text-center">
+                        <i class="fas fa-folder-open text-3xl text-gray-400 mb-3"></i>
+                        <p class="text-gray-500">尚未上传文件</p>
+                        <p class="text-sm text-gray-400 mt-2">拖放文件或点击浏览按钮上传</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            fileList.innerHTML = uploadedFiles.map((file, index) => `
+                <div class="border border-gray-200 rounded-xl overflow-hidden">
+                    <div class="bg-gray-50 px-4 py-3 flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center mr-3">
+                                <i class="${getFileIcon(file.extension)} text-indigo-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-800 truncate max-w-xs">${file.name}</h4>
+                                <p class="text-xs text-gray-500">${file.size}</p>
+                            </div>
+                        </div>
+                        <button class="text-red-400 hover:text-red-600" onclick="removeFile(${index})">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="p-4 bg-white">
+                        <div class="mb-3">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Base64 编码</label>
+                            <div class="relative">
+                                <textarea 
+                                    id="base64-${index}" 
+                                    class="w-full bg-gray-50 border border-gray-300 rounded-lg p-3 text-xs font-mono h-24" 
+                                    readonly
+                                >${file.base64.substring(0, 200)}${file.base64.length > 200 ? '...' : ''}</textarea>
+                                <button 
+                                    class="absolute bottom-2 right-2 bg-indigo-600 text-white px-3 py-1 rounded text-sm hover:bg-indigo-700 transition-colors"
+                                    onclick="copyBase64(${index})"
+                                >
+                                    <i class="fas fa-copy mr-1"></i> 复制
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-500">
+                            <span>编码长度: ${formatNumber(file.base64.length)} 字符</span>
+                            <span>${file.type}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 更新文件计数
+        function updateFileCount() {
+            totalFiles.textContent = uploadedFiles.length;
+        }
+        
+        // 根据文件扩展名获取图标
+        function getFileIcon(extension) {
+            const icons = {
+                '.p12': 'fas fa-lock',
+                '.mobileprovision': 'fas fa-mobile-alt',
+                '.cer': 'fas fa-certificate',
+                '.pem': 'fas fa-file-contract',
+                '.crt': 'fas fa-shield-alt',
+                '.key': 'fas fa-key'
+            };
+            return icons[extension] || 'fas fa-file';
+        }
+        
+        // 复制Base64内容
+        function copyBase64(index) {
+            const base64Content = uploadedFiles[index].base64;
+            navigator.clipboard.writeText(base64Content).then(() => {
+                // 显示复制成功的提示
+                copyToast.classList.remove('translate-y-20', 'opacity-0');
+                copyToast.classList.add('translate-y-0', 'opacity-100');
+                
+                setTimeout(() => {
+                    copyToast.classList.remove('translate-y-0', 'opacity-100');
+                    copyToast.classList.add('translate-y-20', 'opacity-0');
+                }, 2000);
+            });
+        }
+        
+        // 删除单个文件
+        function removeFile(index) {
+            uploadedFiles.splice(index, 1);
+            renderFileList();
+            updateFileCount();
+            if (uploadedFiles.length === 0) {
+                clearAllBtn.disabled = true;
+            }
+        }
+        
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // 格式化数字（添加逗号分隔）
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+        
+        // 初始化显示
+        renderFileList();
+    </script>
+</body>
+</html>
